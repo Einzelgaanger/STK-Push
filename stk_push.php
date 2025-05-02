@@ -6,12 +6,12 @@ if(isset($_POST['submit'])){
     $consumerKey = getenv('CONSUMER_KEY');
     $consumerSecret = getenv('CONSUMER_SECRET');
     
-    $BusinessShortCode = getenv('BUSINESS_SHORTCODE');
+    $BusinessShortCode = '880100'; // Your Paybill number
     $Passkey = getenv('PASSKEY');  
     
-    $PartyA = $_POST['phonenumber']; //Phone number, 
-    $AccountReference = 'Pio Spices East Africa';
-    $TransactionDesc = 'Test lipa na mpesa stk push initiation';
+    $PartyA = $_POST['phonenumber']; // Phone number
+    $AccountReference = '9511840014'; // Your account number
+    $TransactionDesc = 'Payment for BizLens subscription';
     $Amount = $_POST['amount'];
     
     $Timestamp = date('YmdHis');    
@@ -19,9 +19,9 @@ if(isset($_POST['submit'])){
     $Password = base64_encode($BusinessShortCode.$Passkey.$Timestamp);
     # header for access token
     $headers = ['Content-Type:application/json; charset=utf8'];
-    # M-PESA endpoint urls
-    $access_token_url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
-    $initiate_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
+    # M-PESA endpoint urls (Production)
+    $access_token_url = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+    $initiate_url = 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
 
     # callback url
     $CallBackURL = 'https://' . $_SERVER['HTTP_HOST'] . '/callback.php';  
@@ -33,7 +33,7 @@ if(isset($_POST['submit'])){
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($curl, CURLOPT_HEADER, FALSE);
     curl_setopt($curl, CURLOPT_USERPWD,$consumerKey.":".$consumerSecret); 
-    //excecute curl request
+    //execute curl request
     $result = curl_exec($curl);
     $status = curl_getinfo($curl,CURLINFO_HTTP_CODE);
     $result = json_decode($result);
@@ -67,10 +67,17 @@ if(isset($_POST['submit'])){
     curl_setopt($curl, CURLOPT_POST, true);
     curl_setopt($curl, CURLOPT_POSTFIELDS, $data_string);
     $curl_response = curl_exec($curl);
-    print_r($curl_response);
-
-    echo $curl_response;
+    
+    $response = json_decode($curl_response);
+    
+    if(isset($response->ResponseCode) && $response->ResponseCode == "0") {
+        echo json_encode(['status' => 'success', 'message' => 'STK Push sent successfully. Please check your phone to complete the payment.']);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to initiate payment. Please try again.']);
+    }
+    
+    curl_close($curl);
 } else {
-    echo 'error';
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
 }
 ?>
